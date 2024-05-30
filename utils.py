@@ -1,6 +1,7 @@
 from moviepy.editor import VideoFileClip
+import numpy as np
 
-def cut_videos(video, clip_duration=2):
+def trim_videos(video:str, start_time:float=0, end_time:float=2):
     """
     Cuts videos in a folder to a specified clip duration.
 
@@ -10,10 +11,10 @@ def cut_videos(video, clip_duration=2):
     """
     clip = VideoFileClip(video)
 
-    if clip.duration < clip_duration:
-        clip_duration = clip.duration    
+    if clip.duration < (end_time - start_time):
+        clip_duration = clip.duration
+        frames = clip.subclip(0, clip_duration)
+    else:
+        frames = clip.subclip(start_time, end_time)
 
-    out_clip = clip.subclip(0, clip_duration)
-
-
-    return out_clip.to_videofile(video, codec="libx264")
+    return frames
