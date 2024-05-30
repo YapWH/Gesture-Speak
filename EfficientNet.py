@@ -1,27 +1,43 @@
+import cv2
 import torch
-from torchvision import models, transforms
+from torchvision import transforms
+from torchvision.models import efficientnet_v2_s
 from PIL import Image
-import requests
-from io import BytesIO
+import os
 
-model = models.efficientnet_v2_s(weights=None)
+# Load the model
+model = efficientnet_v2_s(pretrained=False, num_classes=1000)
 model.eval()
 
+# Define transformation for the frames
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize the image to 224x224
     transforms.ToTensor(),  # Convert the image to a tensor
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize the image
 ])
 
-url = 'https://letsenhance.io/static/8f5e523ee6b2479e26ecc91b9c25261e/1015f/MainAfter.jpg'  
-response = requests.get(url)
-img = Image.open(BytesIO(response.content)).convert('RGB')
+# Function to preprocess each frame
+def preprocess_frame(frame):
+    # Convert frame to PIL Image
+    frame_pil = Image.fromarray(frame)
 
-# Apply the transform to the image
-img_t = transform(img)
-img_t = img_t.unsqueeze(0)  # Add a batch dimension
+    # Apply the transform to the frame
+    frame_t = transform(frame_pil)
+    frame_t = frame_t.unsqueeze(0)  # Add a batch dimension
+    return frame_t
 
+# Preprocess frames from processed_frames directory
+processed_frames_folder = "./data"
+frames = []
+for filename in os.listdir(processed_frames_folder):
+    if filename.endswith(".jpg"):
+        frame_path = os.path.join(processed_frames_folder, filename)
+        frame = cv2.imread(frame_path, cv2.IMREAD_COLOR)  # Read frame RGB
+        frame_tensor = preprocess_frame(frame)
+        frames.append(frame_tensor)
+
+# Process frames through the model
 with torch.no_grad():
-    output = model(img_t)
+    for frame_tensor in frames:
+        output = model(frame_tensor)
 
-print(output)
+        print(output)

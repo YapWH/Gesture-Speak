@@ -40,9 +40,9 @@ def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0
             square_frame = frame[center_y:center_y + min_dim, center_x:center_x + min_dim]
 
             resized_frame = cv2.resize(square_frame, (224, 224))
-            gray_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2GRAY)
+            # gray_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2GRAY)
 
-            selected_frames.append(gray_frame)
+            selected_frames.append(resized_frame)
 
             if len(selected_frames) == num_frames:
                 break
