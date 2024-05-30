@@ -41,4 +41,3 @@ with torch.no_grad():
         output = model(frame_tensor)
 
         print(output)
-
