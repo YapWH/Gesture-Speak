@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ################################################################################
+
 class EfficientNet(nn.Module):
     def __init__(self):
         super(EfficientNet, self).__init__()
