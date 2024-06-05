@@ -55,8 +55,7 @@ def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0
         return selected_frames
     
     except Exception as e:
-        #print(f"Error processing video {video_path}: {e}")
-        return None
+        raise Exception(f"Error processing video {video_path}: {e}")
 
 
 if __name__ == "__main__":
