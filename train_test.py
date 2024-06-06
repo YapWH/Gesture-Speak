@@ -9,6 +9,26 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ################################################################################
 
+class SequenceImageFolder(ImageFolder):
+    def __init__(self, root, transform=None, num_frames_per_sequence=4):
+        super().__init__(root, transform=transform)
+        self.num_frames_per_sequence = num_frames_per_sequence
+
+    def __getitem__(self, index):
+        path, _ = self.samples[index]
+        target = self.targets[index]
+        sample = self.loader(path)
+
+        sequence = []
+        for i in range(self.num_frames_per_sequence):
+            frame = self.transform(sample)
+            sequence.append(frame)
+
+        # Combine frames into a sequence
+        sequence = torch.stack(sequence, dim=0)
+
+        return sequence, target
+    
 class EfficientNet(nn.Module):
     def __init__(self):
         super(EfficientNet, self).__init__()
@@ -93,16 +113,17 @@ if __name__ == "__main__":
     learning_rate = 0.001
     batch_size = 32
     num_epochs = 10
-
+    num_frames_per_sequence = 4
+    
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    train_dataset = ImageFolder("./data/train", transform=transform)
-    validation_dataset = ImageFolder("./data/validation", transform=transform)
-    test_dataset = ImageFolder("./data/test", transform=transform)
+    train_dataset = SequenceImageFolder("./data/train", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
+    validation_dataset = SequenceImageFolder("./data/validation", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
+    test_dataset = SequenceImageFolder("./data/test", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
