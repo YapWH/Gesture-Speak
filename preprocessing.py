@@ -1,6 +1,8 @@
 import cv2
 import os
+import re
 import pandas as pd
+from PIL import Image
 from utils import trim_videos
 
 def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0, end_time: float = 2):
@@ -32,7 +34,7 @@ def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0
 
         while True:
             ret, frame = video.read()
-            if not ret or count >= end_frame - start_frame: break
+            if not ret or count >= (end_frame - start_frame): break
 
             if count % frame_step == 0:
                 height, width = frame.shape[:2]
@@ -57,8 +59,56 @@ def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0
     except Exception as e:
         raise Exception(f"Error processing video {video_path}: {e}")
 
+################################################################################
 
-if __name__ == "__main__":
+def stack_images(images):
+    """Stack 4 images vertically."""
+    widths, heights = zip(*(i.size for i in images))
+    total_height = sum(heights)
+    max_width = max(widths)
+
+    new_image = Image.new('RGB', (max_width, total_height))
+
+    y_offset = 0
+    for im in images:
+        new_image.paste(im, (0, y_offset))
+        y_offset += im.height
+
+    return new_image
+
+def get_class_name(folder_name):
+    """Extract the base class name from the folder name."""
+    return re.sub(r'\d+', '', folder_name)
+
+def process_folders(input_directory, output_directory):
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    for folder_name in os.listdir(input_directory):
+        folder_path = os.path.join(input_directory, folder_name)
+        if os.path.isdir(folder_path):
+            class_name = get_class_name(folder_name)
+            class_folder = os.path.join(output_directory, class_name)
+            if not os.path.exists(class_folder):
+                os.makedirs(class_folder)
+
+            images = []
+            for file_name in sorted(os.listdir(folder_path)):
+                if file_name.endswith('.jpg'):
+                    image_path = os.path.join(folder_path, file_name)
+                    images.append(Image.open(image_path))
+
+            if len(images) == 4:
+                stacked_image = stack_images(images)
+                output_image_path = os.path.join(class_folder, f"{class_name}.jpg")
+                stacked_image.save(output_image_path)
+            else:
+                print(f"Warning: Folder {folder_path} does not contain exactly 4 images.")
+
+
+################################################################################
+
+def main():
     video_folder = "./data"
     train_file = "./data/train.csv"
     test_file = "./data/test.csv"
@@ -107,3 +157,9 @@ if __name__ == "__main__":
             for i, frame in enumerate(frames):
                 img_path = os.path.join(video_folder, "validation", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
                 cv2.imwrite(img_path, frame)
+    
+    # Process folders
+    process_folders(video_folder)
+
+if __name__ == "__main__":
+    main()
