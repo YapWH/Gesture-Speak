@@ -1,5 +1,5 @@
 # Sign-Language-Recognition
-Sign Language Recognition. Target for lower complexity for higer efficiency.
+Sign Language Recognition. Target for lower complexity and higer efficiency.
 
 ## Contribution
 <a href="https://github.com/YapWH/Sign-Language-Recognition/graphs/contributors">
