@@ -1,30 +1,44 @@
-import torch
-import torch.functional as F
 import cv2
-from time import time
-from train_test import EfficientNet
+import torch
 
+from time import time
+
+from train_test import EfficientNet, NGramModel
 from preprocessing import preprocess_video
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Real time
-def predict(model, frame):
+################################################################################
+
+@torch.no_grad()
+def predict(model, ngram, frame, dataset_classes, nn_weights:float=0.5, ngram_weights:float=0.5):
     frame = torch.tensor(frame).unsqueeze(0).to(device)
     model.eval()
-    with torch.no_grad():
-        outputs = model(frame)
-        largest_prob = F.softmax(outputs, dim=1).max().item()
-        if largest_prob > 0.5:
-            return outputs.argmax(dim=1).item()
-        else:
-            return ""
+    
+    outputs = model(frame)
+    nn_probs = torch.softmax(outputs, dim=1)
+    _, nn_predicted = torch.max(outputs, 1)
+    predicted_labels = [dataset_classes[label] for label in nn_predicted]
+
+    for i, label in enumerate(predicted_labels):
+        ngram_predictions = ngram.predict(label)
+        ngram_index = dataset_classes.index(ngram_predictions)
+
+        combined_probs = nn_weights * nn_probs[i] + ngram_weights * (torch.eye(len(dataset_classes))[ngram_index].to(device))
+
+    largest_prob, _ = torch.max(combined_probs)
+
+    if largest_prob > 0.5:
+        return torch.argmax(combined_probs).item()
+    else:
+        return ""
 
 ################################################################################
 
 def real_time():
     model = EfficientNet().to(device)
     model.load_state_dict(torch.load("best_model.pth"))
+    n_gram = NGramModel()
 
     cap  = cv2.VideoCapture(0)
     if not cap:
