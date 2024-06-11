@@ -1,3 +1,5 @@
+import os
+import shutil
 import torch
 from torchvision import transforms
 from torchvision.models import efficientnet_v2_s
@@ -8,7 +10,15 @@ from torch.utils.data import DataLoader
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ################################################################################
-
+def check_and_delete_empty_directories(root_dir):
+    for cls in os.listdir(root_dir):
+        cls_dir = os.path.join(root_dir, cls)
+        if os.path.isdir(cls_dir):
+            contains_jpg = any(file.endswith('.jpg') for file in os.listdir(cls_dir))
+            if not contains_jpg:
+                print(f"Deleting directory: {cls}")
+                os.rmdir(cls_dir)
+                
 class SequenceImageFolder(ImageFolder):
     def __init__(self, root, transform=None, num_frames_per_sequence=4):
         super().__init__(root, transform=transform)
@@ -28,7 +38,9 @@ class SequenceImageFolder(ImageFolder):
         sequence = torch.stack(sequence, dim=0)
 
         return sequence, target
-    
+
+################################################################################
+
 class EfficientNet(nn.Module):
     def __init__(self):
         super(EfficientNet, self).__init__()
@@ -96,6 +108,7 @@ def test(model, criterion, test_loader):
     total = 0
     with torch.no_grad():
         for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
             correct += (outputs.argmax(dim=1) == labels).sum().item()
@@ -116,14 +129,22 @@ if __name__ == "__main__":
     num_frames_per_sequence = 4
     
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        # transforms.Resize((224, 224)),
         transforms.ToTensor(),
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    train_dataset = SequenceImageFolder("./data/train", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
-    validation_dataset = SequenceImageFolder("./data/validation", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
-    test_dataset = SequenceImageFolder("./data/test", transform=transform, num_frames_per_sequence=num_frames_per_sequence)
+    train_root = "./autodl-tmp/SL/ASL_Citizen/train"
+    validation_root = "./autodl-tmp/SL/ASL_Citizen/validation"
+    test_root = "./autodl-tmp/SL/ASL_Citizen/test"
+    
+    check_and_delete_empty_directories(train_root)
+    check_and_delete_empty_directories(validation_root)
+    check_and_delete_empty_directories(test_root)
+
+    train_dataset = SequenceImageFolder(train_root, transform=transform, num_frames_per_sequence=num_frames_per_sequence)
+    validation_dataset = SequenceImageFolder(validation_root, transform=transform, num_frames_per_sequence=num_frames_per_sequence)
+    test_dataset = SequenceImageFolder(test_root, transform=transform, num_frames_per_sequence=num_frames_per_sequence)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
