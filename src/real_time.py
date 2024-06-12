@@ -14,6 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def predict(model, ngram, frame, dataset_classes, nn_weights:float=0.5, ngram_weights:float=0.5):
     frame = torch.tensor(frame).unsqueeze(0).to(device)
     model.eval()
+    predicted_sequence = []
     
     outputs = model(frame)
     nn_probs = torch.softmax(outputs, dim=1)
@@ -25,13 +26,11 @@ def predict(model, ngram, frame, dataset_classes, nn_weights:float=0.5, ngram_we
         ngram_index = dataset_classes.index(ngram_predictions)
 
         combined_probs = nn_weights * nn_probs[i] + ngram_weights * (torch.eye(len(dataset_classes))[ngram_index].to(device))
-
-    largest_prob, _ = torch.max(combined_probs)
-
-    if largest_prob > 0.5:
-        return torch.argmax(combined_probs).item()
-    else:
-        return ""
+        corrected_label_index = torch.argmax(combined_probs).item()
+        corrected_label = dataset_classes[corrected_label_index]
+        predicted_sequence[-1] = corrected_label
+    
+    return ''.join(predicted_sequence)
 
 ################################################################################
 

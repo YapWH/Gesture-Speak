@@ -170,7 +170,7 @@ class NGramModel:
             None
         """
         for seq in sequences:
-            padded_seq = ['<s>'] * (self.n - 1) + seq + ['</s>']
+            padded_seq = ['<s>'] * (self.n - 1) + list(seq) + ['</s>']
             for i in range(len(padded_seq) - self.n + 1):
                 context = tuple(padded_seq[i:i+self.n-1])
                 target = padded_seq[i+self.n-1]
@@ -233,7 +233,7 @@ def load_external_sequences(external_dataset_path):
     with open(external_dataset_path, 'r') as f:
         for line in f:
             # Tokenize the line into words (or signs)
-            sequences.append(line.strip().split())
+            sequences.append(line.strip())
     return sequences
 
 def predict_sequence(model, ngram_model, dataloader, dataset_classes, nn_weight=0.5, ngram_weight=0.5):
@@ -270,7 +270,8 @@ def predict_sequence(model, ngram_model, dataloader, dataset_classes, nn_weight=
                 corrected_label_index = torch.argmax(combined_probs).item()
                 corrected_label = dataset_classes[corrected_label_index]
                 predicted_sequence[-1] = corrected_label
-    return predicted_sequence
+                
+    return ''.join(predicted_sequence)
 
 ################################################################################
 
