@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class SignLanguageDataset(Dataset):
     def __init__(self, features, labels, transform=None):
         self.features = features
-        self.labels = labels
+        self.labels = labels.astype(np.int64) 
         self.transform = transform
 
     def __len__(self):
@@ -291,8 +291,8 @@ if __name__ == "__main__":
     num_epochs = 10
     
     # Load the CSV files
-    train_csv_path = '/Data/sign/sign_mnist_train.csv' 
-    test_csv_path = '/Data/sign/sign_mnist_test.csv' 
+    train_csv_path = './Data/sign/sign_mnist_train.csv' 
+    test_csv_path = './Data/sign/sign_mnist_train.csv' 
 
     train_data = pd.read_csv(train_csv_path)
     test_data = pd.read_csv(test_csv_path)
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     test_labels = test_data['label'].values
     test_features = test_data.drop(columns=['label']).values / 255.0  # Normalize pixel values
     test_features = test_features.reshape(-1, 28, 28) # Reshape features to 28x28 images
-
+    
     # Split the training data into training and validation sets
     train_features, val_features, train_labels, val_labels = train_test_split(
         train_features, train_labels, test_size=0.2, random_state=42)
@@ -329,10 +329,10 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     
     # Number of classes
-    num_classes = len(np.unique(train_labels))
+    num_classes = 25
 
     model = EfficientNet(num_classes=num_classes).to(device)
-    
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
