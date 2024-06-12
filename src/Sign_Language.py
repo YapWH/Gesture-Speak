@@ -3,6 +3,7 @@ import random
 import pickle
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.models import efficientnet_v2_s
@@ -23,7 +24,7 @@ class SignLanguageDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        image = self.features[idx]
+        image = self.features[idx].astype(np.uint8)
         image = np.stack([image] * 3, axis=-1)  # Convert to 3 channels
         if self.transform:
             image = self.transform(image)
@@ -32,12 +33,12 @@ class SignLanguageDataset(Dataset):
     
 #########################################################################
 class EfficientNet(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         """
         Initializes the EfficientNet model.
 
         Args:
-            None
+            num_classes (int): Number of output classes.
 
         Returns:
             None
@@ -45,7 +46,7 @@ class EfficientNet(nn.Module):
         super(EfficientNet, self).__init__()
         self.base_model = efficientnet_v2_s(pretrained=True)
         num_features = self.base_model.classifier[1].in_features
-        self.base_model.classifier[1] = nn.Linear(num_features, len(train_dataset.classes))
+        self.base_model.classifier[1] = nn.Linear(num_features, num_classes)
 
     def forward(self, x):
         """
@@ -327,15 +328,40 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     
-    model = EfficientNet().to(device)
+    # Number of classes
+    num_classes = len(np.unique(train_labels))
+
+    model = EfficientNet(num_classes=num_classes).to(device)
     
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 
-    train(model, criterion, optimizer, train_loader, val_loader, num_epochs)
+    train_losses, val_losses, val_accuracies = train(model, criterion, optimizer, train_loader, val_loader, num_epochs)
     test(model, criterion, test_loader)
 
     torch.save(model.state_dict(), 'model_26.pth')
+
+    # Plot the loss curves and save the plots
+    plt.figure(figsize=(12, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, num_epochs + 1), train_losses, label='Train Loss')
+    plt.plot(range(1, num_epochs + 1), val_losses, label='Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.title('Loss Curves')
+    plt.savefig('loss_curves.png')  # Save the loss curves plot
+
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, num_epochs + 1), val_accuracies, label='Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.title('Validation Accuracy')
+    plt.savefig('accuracy_curve.png')  # Save the accuracy curve plot
+
+    plt.show()
 
     # N-gram
     num_classes = len(train_dataset.classes)
