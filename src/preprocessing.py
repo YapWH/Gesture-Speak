@@ -57,9 +57,8 @@ def preprocess_video(video_path: str, num_frames: int = 4, start_time: float = 0
         return selected_frames
     
     except Exception as e:
-        raise Exception(f"Error processing video {video_path}: {e}")
-
-################################################################################
+        print(f"Error processing video {video_path}: {e}")
+        return None
 
 def stack_images(images):
     """Stack 4 images vertically."""
@@ -80,18 +79,11 @@ def get_class_name(folder_name):
     """Extract the base class name from the folder name."""
     return re.sub(r'\w+\d+$', r'\g', folder_name)
 
-def process_folders(input_directory, output_directory):
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-
+def process_folders(input_directory):
     for folder_name in os.listdir(input_directory):
         folder_path = os.path.join(input_directory, folder_name)
         if os.path.isdir(folder_path):
             class_name = get_class_name(folder_name)
-            class_folder = os.path.join(output_directory, class_name)
-            if not os.path.exists(class_folder):
-                os.makedirs(class_folder)
-
             images = []
             for file_name in sorted(os.listdir(folder_path)):
                 if file_name.endswith('.jpg'):
@@ -100,19 +92,22 @@ def process_folders(input_directory, output_directory):
 
             if len(images) == 4:
                 stacked_image = stack_images(images)
-                output_image_path = os.path.join(class_folder, f"{class_name}.jpg")
+                output_image_path = os.path.join(folder_path, f"{class_name}.jpg")
                 stacked_image.save(output_image_path)
             else:
                 print(f"Warning: Folder {folder_path} does not contain exactly 4 images.")
 
-
-################################################################################
-
+def process_dataset(dataset_directory):
+    for set_name in ['train', 'validation', 'test']:
+        input_dir = os.path.join(dataset_directory, set_name)
+        process_folders(input_dir)
+                
 def main():
-    video_folder = "./data"
-    train_file = "./data/train.csv"
-    test_file = "./data/test.csv"
-    validation_file = "./data/val.csv"
+    save_to_folder = "./autodl-tmp/SL/ASL_Citizen"
+    video_folder = "./autodl-tmp/SL/ASL_Citizen/videos"
+    train_file = "./autodl-tmp/SL/ASL_Citizen/splits/train.csv"
+    test_file = "./autodl-tmp/SL/ASL_Citizen/splits/test.csv"
+    validation_file = "./autodl-tmp/SL/ASL_Citizen/splits/val.csv"
 
     # Read CSV files into dataframes
     train_data = pd.read_csv(train_file)
@@ -125,7 +120,7 @@ def main():
     # Create directories for each class in train, test, and validation sets
     for dataset, dataset_name in zip([train_data, test_data, validation_data], dataset_names):
         for _, row in dataset.iterrows():
-            class_dir = os.path.join(video_folder, dataset_name, row["Gloss"])
+            class_dir = os.path.join(save_to_folder, dataset_name, row["Gloss"])
             os.makedirs(class_dir, exist_ok=True)
 
     # Iterate through train data
@@ -135,7 +130,7 @@ def main():
 
         if frames is not None:
             for i, frame in enumerate(frames):
-                img_path = os.path.join(video_folder, "train", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
+                img_path = os.path.join(save_to_folder, "train", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
                 cv2.imwrite(img_path, frame)
 
     # Iterate through test data
@@ -145,7 +140,7 @@ def main():
 
         if frames is not None:
             for i, frame in enumerate(frames):
-                img_path = os.path.join(video_folder, "test", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
+                img_path = os.path.join(save_to_folder, "test", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
                 cv2.imwrite(img_path, frame)
 
     # Iterate through validation data
@@ -155,11 +150,11 @@ def main():
 
         if frames is not None:
             for i, frame in enumerate(frames):
-                img_path = os.path.join(video_folder, "validation", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
+                img_path = os.path.join(save_to_folder, "validation", row["Gloss"], f"{row['Gloss']}_frame_{i}.jpg")
                 cv2.imwrite(img_path, frame)
     
-    # Process folders
-    process_folders(video_folder)
+    # Process the dataset
+    process_dataset(save_to_folder)
 
 if __name__ == "__main__":
     main()
