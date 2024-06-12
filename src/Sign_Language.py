@@ -96,7 +96,7 @@ def train(model, criterion, optimizer, train_loader, val_loader, num_epochs):
         train_loss = running_loss / len(train_loader)
         train_losses.append(train_loss)
         
-        print(f'Epoch {epoch+1}/{num_epochs} - Train Loss: {train_loss:.3f}')
+        print(f'Epoch {epoch+1}/{num_epochs} - Train Loss: {train_loss:.4f}')
         
         # Validation loop
         model.eval()
@@ -116,10 +116,10 @@ def train(model, criterion, optimizer, train_loader, val_loader, num_epochs):
         
         val_loss = val_running_loss / len(val_loader)
         val_losses.append(val_loss)
-        val_accuracy = 100 * correct / total
+        val_accuracy = correct / total
         val_accuracies.append(val_accuracy)
         
-        print(f'Validation Loss: {val_loss:.3f} - Accuracy: {val_accuracy:.2f}%')
+        print(f'Validation Loss: {val_loss:.4f} - Accuracy: {val_accuracy:.4f}')
     
     return train_losses, val_losses, val_accuracies
 
