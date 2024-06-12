@@ -78,7 +78,7 @@ def stack_images(images):
 
 def get_class_name(folder_name):
     """Extract the base class name from the folder name."""
-    return re.sub(r'\d+', '', folder_name)
+    return re.sub(r'\w+\d+$', r'\g', folder_name)
 
 def process_folders(input_directory, output_directory):
     if not os.path.exists(output_directory):
