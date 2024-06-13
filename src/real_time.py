@@ -1,10 +1,8 @@
 import cv2
 import torch
-
 from time import time
 
 from train_test import EfficientNet, NGramModel
-from preprocessing import preprocess_video
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -55,8 +53,7 @@ def real_time():
         frames.append(frame)
         cv2.imshow("Frame", frame)
     
-        if (time() - start) >= 2:
-            frame = preprocess_video(frame)
+        if (time() - start) >= 1:
             predict(frame)
             start = time()
 
