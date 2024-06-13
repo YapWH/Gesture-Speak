@@ -55,8 +55,7 @@ def real_time():
         frames.append(frame)
         cv2.imshow("Frame", frame)
     
-        if (time() - start) >= 2:
-            frame = preprocess_video(frame)
+        if (time() - start) >= 1:
             predict(frame)
             start = time()
 
