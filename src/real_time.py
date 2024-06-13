@@ -1,10 +1,8 @@
 import cv2
 import torch
-
 from time import time
 
 from train_test import EfficientNet, NGramModel
-from preprocessing import preprocess_video
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
