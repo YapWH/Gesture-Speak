@@ -1,6 +1,7 @@
 import torch
 import random
 import pickle
+import numpy
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -37,11 +38,12 @@ class EfficientNet(nn.Module):
         self.base_model = efficientnet_v2_s(weights=weights)
         num_features = self.base_model.classifier[1].in_features
         self.base_model.classifier[1] = nn.Linear(num_features, num_classes)
-        self.dropout = nn.Dropout(p=0.5)
+        # self.dropout = nn.Dropout(p=0.5)
         
     def forward(self, x):
-        x = self.base_model(x)
-        return self.dropout(x)
+        # x = self.base_model(x)
+        # return self.dropout(x)
+        return self.base_model(x)
 
 def train(model, criterion, optimizer, train_loader, val_loader, num_epochs, patience):
     train_losses = []
@@ -159,10 +161,10 @@ def predict_sequence(model, ngram_model, dataloader, dataset_classes, nn_weight=
     model.eval()
     predicted_sequence = []
     for inputs, _ in dataloader:
-        outputs = model(inputs)
+        outputs = model(inputs.to(device))
         nn_probs = torch.softmax(outputs, dim=1)
         _, nn_predicted = torch.max(outputs, 1)
-        predicted_labels = [dataset_classes[label] for label in nn_predicted]
+        predicted_labels = [dataset_classes[label] for label in nn_predicted.cpu().numpy()]
         
         for i, label in enumerate(predicted_labels):
             predicted_sequence.append(label)
@@ -235,22 +237,22 @@ if __name__ == "__main__":
     plt.show()  # Save the loss curves plot
 
     # N-gram
-    num_classes = 25
+    num_classes = len(dataset.classes)
     external_sequences = load_external_sequences("./data/data.txt")
     ngram_model = NGramModel(n=2)
     ngram_model.train(external_sequences)
 
     sequences = []
     for inputs, labels in train_loader:
-        _, predicted = torch.max(model(inputs), 1)
-        sequences.append([train_dataset.classes[label] for label in predicted])
+        _, predicted = torch.max(model(inputs.to(device)), 1)
+        sequences.append([dataset.classes[label] for label in predicted])
     ngram_model.train(sequences)
 
     ngram_model.save("ngram_model.pkl")
 
     ngram_model = NGramModel.load("ngram_model.pkl")
 
-    pickle.dump(train_dataset.classes, open("classes.pkl", "wb"))
+    pickle.dump(dataset.classes, open("classes.pkl", "wb"))
 
-    predicted_sequences = predict_sequence(model, ngram_model, test_loader, train_dataset.classes, ngram_weight=0.3, nn_weight=0.7)
+    predicted_sequences = predict_sequence(model, ngram_model, test_loader, dataset.classes, ngram_weight=0.3, nn_weight=0.7)
     print(predicted_sequences)
