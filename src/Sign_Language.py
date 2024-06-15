@@ -1,5 +1,5 @@
 import random
-import time
+
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,6 +12,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from collections import defaultdict, Counter
 from tqdm import tqdm
+from time import time
 from utils import set_logger
 import logging
 
@@ -189,7 +190,7 @@ def train_student(student_model, teacher_model, device, train_loader, optimizer,
     train_loss = []
 
     with tqdm(range(epochs), desc="Training") as pbar:
-        for epoch in pbar:
+        for _ in pbar:
             running_loss = 0.0
             for inputs, labels in train_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
@@ -301,7 +302,9 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(student_model.parameters(), lr=learning_rate)
 
+    start = time()
     train_student(student_model, teacher_model, device, train_loader, optimizer, alpha=0.5, beta=0.5, epochs=50)
+    time_spent = time() - start
     torch.save(model.state_dict(), './model/student_model.pth')
     test_loss, test_accuracy = test(model, criterion, test_loader)
-    logging.info(f'Test Accuracy: {test_accuracy:.4f} - Loss: {test_loss:.4f}')
+    logging.info(f'Test Accuracy: {test_accuracy:.4f} - Loss: {test_loss:.4f} - Time: {time_spent:.2f}s')
