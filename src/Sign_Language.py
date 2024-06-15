@@ -1,18 +1,23 @@
-import torch
 import random
+import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.datasets import ImageFolder
-from torchvision import transforms
-from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
+import torch
 from torch import nn, optim
+from torch.nn import functional as F
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from collections import defaultdict, Counter
-import torch.nn.functional as F
 from tqdm import tqdm
+from utils import set_logger
+import logging
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#########################################################################
 
 class SignLanguageDataset(Dataset):
     def __init__(self, features, labels, transform=None):
@@ -66,22 +71,7 @@ def train(model, criterion, optimizer, train_loader, val_loader, num_epochs, pat
             train_loss = running_loss / len(train_loader)
             train_losses.append(train_loss)
 
-            model.eval()
-            val_loss = 0.0
-            correct = 0
-            total = 0
-
-            with torch.no_grad():
-                for inputs, labels in val_loader:
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    val_loss += loss.item()
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-            val_loss /= len(val_loader)
-            val_accuracy = correct / total
+            val_loss, val_accuracy = test(model, criterion, val_loader)
             val_losses.append(val_loss)
 
             pbar.set_postfix({'Train Loss': train_loss, 'Val Loss': val_loss, 'Val Accuracy': val_accuracy})
@@ -94,7 +84,7 @@ def train(model, criterion, optimizer, train_loader, val_loader, num_epochs, pat
                 patience_counter += 1
 
             if patience_counter >= patience:
-                print("Early stopping......")
+                logging.info(f'Early stopping at epoch {epoch}')
                 break
 
     return train_losses, val_losses
@@ -117,7 +107,6 @@ def test(model, criterion, test_loader):
 
     test_loss /= len(test_loader)
     accuracy = correct / total
-    print(f'Test Accuracy: {accuracy:.4f} - Loss: {test_loss:.4f}')
     
     return test_loss, accuracy
 
@@ -230,6 +219,8 @@ class EfficientNetSmall(nn.Module):
 #########################################################################
 
 if __name__ == "__main__":
+    set_logger(f"./log/{time}.log")
+
     # Neural Network
     learning_rate = 0.001
     batch_size = 16
@@ -268,6 +259,7 @@ if __name__ == "__main__":
 
     train_losses, val_losses = train(model, criterion, optimizer, train_loader, val_loader, num_epochs, patience)
     test_loss, test_accuracy = test(model, criterion, test_loader)
+    logging.info(f'Test Accuracy: {test_accuracy:.4f} - Loss: {test_loss:.4f}')
 
     torch.save(model.state_dict(), './model/model.pth')
 
@@ -302,7 +294,6 @@ if __name__ == "__main__":
 
     pickle.dump(dataset.classes, open("classes.pkl", "wb"))
 
-
     # predicted_sequences = predict_sequence(model, ngram_model, test_loader, dataset.classes, ngram_weight=0.3, nn_weight=0.7)
     # print(predicted_sequences)
 
@@ -313,3 +304,4 @@ if __name__ == "__main__":
     train_student(student_model, teacher_model, device, train_loader, optimizer, alpha=0.5, beta=0.5, epochs=50)
     torch.save(model.state_dict(), './model/student_model.pth')
     test_loss, test_accuracy = test(model, criterion, test_loader)
+    logging.info(f'Test Accuracy: {test_accuracy:.4f} - Loss: {test_loss:.4f}')
