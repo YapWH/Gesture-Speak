@@ -238,7 +238,7 @@ if __name__ == "__main__":
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
     
-     # Load dataset
+    # Load dataset
     dataset = ImageFolder(root='../asl_dataset', transform=transform)
     
     # Split dataset into training, validation, and test sets
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     
     num_classes = len(dataset.classes)
     external_sequences = load_external_sequences("./data/data.txt")
-    ngram_model = NGramModel(n=2)
+    ngram_model = NGramModel(3)
     ngram_model.train(external_sequences)
 
     sequences = []
