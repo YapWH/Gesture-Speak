@@ -3,9 +3,10 @@ import torch
 import pickle
 from time import time
 
-from train_test import EfficientNet, NGramModel
+from Sign_Language import EfficientNetSmall, NGramModel
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu") # For testing purposes
 
 ################################################################################
 
@@ -34,17 +35,18 @@ def predict(model, ngram, frame, dataset_classes, nn_weights:float=0.5, ngram_we
 ################################################################################
 
 def real_time():
-    model = EfficientNet().to(device)
-    model.load_state_dict(torch.load("../src/model/best_model.pth"))
+    model = EfficientNetSmall().to(device)
+    model.load_state_dict(torch.load("../src/model/student_model.pth"))
     n_gram = NGramModel().load("../src/model/ngram_model.pkl")
     dataset_classes = pickle.load(open("../src/model/dataset_classes.pkl", "rb"))
 
+    cv2.namedWindow("Sign-Language Recognition", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Sign-Language Recognition", 400, 400)
     cap  = cv2.VideoCapture(0)
     if not cap:
         raise Exception("Error opening video capture")
     
     start = time()
-    frames = []
     
     while True:
         ret, frame = cap.read()
@@ -52,16 +54,20 @@ def real_time():
         if not ret:
             raise Exception("Error reading video frame")
         
-        frames.append(model, n_gram, frame, dataset_classes, nn_weights=0.7, ngram_weights=0.3)
         cv2.imshow("Frame", frame)
     
         if (time() - start) >= 1:
-            predict(frame)
+            predict(model, n_gram, frame, dataset_classes, nn_weights=0.7, ngram_weights=0.3)
             start = time()
 
         # Exit 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) == ord('q'):
             break
     
     cap.release()
     cv2.destroyAllWindows()
+
+################################################################################
+
+if __name__ == "__main__":
+    real_time()
