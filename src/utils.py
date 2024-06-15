@@ -27,6 +27,8 @@ def set_logger(log_path):
 	# remove the log with same name
     if os.path.exists(log_path) is True:
         os.remove(log_path)
+    if os.path.exists(log_path) is False:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
     # Initialize log
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
