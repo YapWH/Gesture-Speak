@@ -2,6 +2,7 @@ import cv2
 import torch
 import pickle
 from time import time
+import torchvision.transforms as transforms
 
 from Sign_Language import EfficientNetSmall, NGramModel
 
@@ -12,9 +13,18 @@ device = torch.device("cpu") # For testing purposes
 
 @torch.no_grad()
 def predict(model, ngram, frame, dataset_classes, nn_weights:float=0.5, ngram_weights:float=0.5):
-    frame = torch.tensor(frame).unsqueeze(0).to(device)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ])
+
+    frame = transform(frame).unsqueeze(0).to(device)
+    
     model.eval()
-    predicted_sequence = []
+    predicted_sequence = ['<s>']
     
     outputs = model(frame)
     nn_probs = torch.softmax(outputs, dim=1)
@@ -57,7 +67,7 @@ def real_time():
         cv2.imshow("Frame", frame)
     
         if (time() - start) >= 1:
-            predict(model, n_gram, frame, dataset_classes, nn_weights=0.7, ngram_weights=0.3)
+            print(predict(model, n_gram, frame, dataset_classes, nn_weights=0.7, ngram_weights=0.3))
             start = time()
 
         # Exit 
