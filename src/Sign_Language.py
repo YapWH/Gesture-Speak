@@ -1,21 +1,23 @@
-import torch
 import random
+import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.datasets import ImageFolder
-from torchvision import transforms
-from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
+import torch
 from torch import nn, optim
+from torch.nn import functional as F
+from torch.utils.data import Dataset, DataLoader, random_split
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from collections import defaultdict, Counter
-import torch.nn.functional as F
 from tqdm import tqdm
 from utils import set_logger
 import logging
-from time import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#########################################################################
 
 class SignLanguageDataset(Dataset):
     def __init__(self, features, labels, transform=None):
@@ -69,22 +71,7 @@ def train(model, criterion, optimizer, train_loader, val_loader, num_epochs, pat
             train_loss = running_loss / len(train_loader)
             train_losses.append(train_loss)
 
-            model.eval()
-            val_loss = 0.0
-            correct = 0
-            total = 0
-
-            with torch.no_grad():
-                for inputs, labels in val_loader:
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    val_loss += loss.item()
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-            val_loss /= len(val_loader)
-            val_accuracy = correct / total
+            val_loss, val_accuracy = test(model, criterion, val_loader)
             val_losses.append(val_loss)
 
             pbar.set_postfix({'Train Loss': train_loss, 'Val Loss': val_loss, 'Val Accuracy': val_accuracy})
