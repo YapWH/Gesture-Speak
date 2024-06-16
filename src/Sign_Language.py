@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights
+from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights, efficientnet_v2_m, EfficientNet_V2_M_Weights, efficientnet_v2_s, EfficientNet_V2_S_Weights, mobilenet_v3_large, MobileNet_V3_Large_Weights, mobilenet_v3_small, MobileNet_V3_Small_Weights
 from collections import defaultdict, Counter
 from tqdm import tqdm
 from time import time
@@ -48,6 +48,28 @@ class EfficientNet(nn.Module):
         
     def forward(self, x):
         return self.base_model(x)
+
+class MobileNetLarge(nn.Module):
+    def __init__(self, num_classes):
+        super(MobileNetLarge, self).__init__()
+        weights = MobileNet_V3_Large_Weights.IMAGENET1K_V2
+        self.base_model = mobilenet_v3_large(weights=weights)
+        self.base_model.classifier[3] = nn.Linear(self.base_model.classifier[3].in_features, num_classes)
+        
+    def forward(self, x):
+        return self.base_model(x)
+
+class MobileNetSmall(nn.Module):
+    def __init__(self, num_classes):
+        super(MobileNetSmall, self).__init__()
+        weights = MobileNet_V3_Small_Weights.IMAGENET1K_V1
+        self.base_model = mobilenet_v3_small(weights=weights)
+        self.base_model.classifier[3] = nn.Linear(self.base_model.classifier[3].in_features, num_classes)
+        
+    def forward(self, x):
+        return self.base_model(x)
+
+#########################################################################
 
 def train(model, criterion, optimizer, train_loader, val_loader, num_epochs, patience):
     train_losses = []
@@ -305,6 +327,6 @@ if __name__ == "__main__":
     start = time()
     train_student(student_model, teacher_model, device, train_loader, optimizer, alpha=0.5, beta=0.5, epochs=50)
     time_spent = time() - start
-    torch.save(model.state_dict(), './model/student_model.pth')
-    test_loss, test_accuracy = test(model, criterion, test_loader)
+    torch.save(student_model.state_dict(), './model/student_model.pth')
+    test_loss, test_accuracy = test(student_model, criterion, test_loader)
     logging.info(f'Test Accuracy: {test_accuracy:.4f} - Loss: {test_loss:.4f} - Time: {time_spent:.2f}s')
